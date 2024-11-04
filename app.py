@@ -1,67 +1,116 @@
-# Author: Zer0G0ld
-# Divirtam-se modificando o código !!!
+import sys
+from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLineEdit, QPushButton, QListWidget, QListWidgetItem, QMessageBox
+from PyQt6.QtGui import QFont
 
-import tkinter as tk
-
-class GerenciadorTarefaGUI:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Gerenciador de Tarefas")
-
-        # Definir tamanho da janela para ocupar a tela
-        # width_window = root.winfo_screenwidth()
-        # height_window = root.winfo_screenheight()
-        # self.root.geometry(f"{width_window}x{height_window}")
-        self.root.geometry(f"500x500")
-
+class TaskManager:
+    def __init__(self):
         self.tasks = []
 
-        self.frame_center = tk.Frame(root)
-        self.frame_center.pack(expand=True, fill="both")
+    def add_task(self, text):
+        self.tasks.append({"text": text, "done": False})
 
-        self.input_tasks = tk.Entry(self.frame_center)
-        self.input_tasks.pack(pady=10, padx=20, fill="both")
-
-        self.button_add = tk.Button(
-            self.frame_center, text="Adicionar Tarefa", command=self.add_task
-        )
-        self.button_add.pack(pady=10, fill="both")
-
-        self.button_remove = tk.Button(
-            self.frame_center, text="Remover Tarefa Selecionada", command=self.remove_task
-        )
-        self.button_remove.pack(pady=10, fill="both")
-
-        self.button_clear = tk.Button(
-            self.frame_center, text="Limpar Tarefas completas", command=self.clear_tasks
-        )
-        self.button_clear.pack(pady=10, fill="both")
-
-        self.list_tasks = tk.Listbox(self.frame_center)
-        self.list_tasks.pack(pady=10, padx=20, fill="both", expand=True)
-    
-    def add_task(self):
-        task = self.input_tasks.get()
-        if task:
-            self.tasks.append(task)
-            self.list_tasks.insert(tk.END, task)
-            self.input_tasks.delete(0, tk.END)
-    
-    def remove_task(self):
-        selected = self.list_tasks.curselection()
-        if selected:
-            index = int(selected[0])
-            self.list_tasks.delete(index)
+    def remove_task(self, index):
+        if 0 <= index < len(self.tasks):
             self.tasks.pop(index)
 
+    def mark_task_done(self, index):
+        if 0 <= index < len(self.tasks):
+            self.tasks[index]["done"] = True
+
+    def remove_task_done(self, index):
+        if 0 <= index < len(self.tasks):
+            self.tasks[index]["done"] = False
+
+    def get_task_text(self, index):
+        task = self.tasks[index]
+        return f"{task['text']} - Concluída" if task["done"] else task["text"]
+
+class GerenciadorTarefaGUI(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+        self.task_manager = TaskManager()
+
+    def initUI(self):
+        self.setWindowTitle("Gerenciador de Tarefas")
+        self.setGeometry(300, 100, 500, 500)
+        self.setStyleSheet("background-color: #2E2E2E;")
+
+        layout = QVBoxLayout()
+
+        # Entrada de tarefa
+        self.input_tasks = QLineEdit(self)
+        self.input_tasks.setPlaceholderText("Digite uma nova tarefa...")
+        self.input_tasks.setStyleSheet("background-color: #424242; color: #FFFFFF; padding: 10px;")
+        layout.addWidget(self.input_tasks)
+
+        # Lista de tarefas
+        self.list_tasks = QListWidget(self)
+        self.list_tasks.setStyleSheet("background-color: #424242; color: #FFFFFF;")
+        layout.addWidget(self.list_tasks)
+
+        # Botões
+        self.button_add = QPushButton("Adicionar Tarefa", self)
+        self.button_add.clicked.connect(self.add_task)
+        self.button_add.setStyleSheet("background-color: #4CAF50; color: #FFFFFF;")
+        layout.addWidget(self.button_add)
+
+        self.button_remove = QPushButton("Remover Tarefa Selecionada", self)
+        self.button_remove.clicked.connect(self.remove_task)
+        self.button_remove.setStyleSheet("background-color: #F44336; color: #FFFFFF;")
+        layout.addWidget(self.button_remove)
+
+        self.button_mark_done = QPushButton("Marcar como Concluída", self)
+        self.button_mark_done.clicked.connect(self.mark_task_done)
+        self.button_mark_done.setStyleSheet("background-color: #FFA000; color: #FFFFFF;")
+        layout.addWidget(self.button_mark_done)
+
+        self.button_clear = QPushButton("Limpar Tarefas", self)
+        self.button_clear.clicked.connect(self.clear_tasks)
+        self.button_clear.setStyleSheet("background-color: #2196F3; color: #FFFFFF;")
+        layout.addWidget(self.button_clear)
+
+        self.setLayout(layout)
+
+    def add_task(self):
+        task_text = self.input_tasks.text().strip()
+        if task_text:
+            self.task_manager.add_task(task_text)
+            self.update_task_list()
+            self.input_tasks.clear()
+        else:
+            QMessageBox.warning(self, "Erro", "Por favor, insira uma tarefa.")
+
+    def remove_task(self):
+        selected = self.list_tasks.currentRow()
+        if selected >= 0:
+            self.task_manager.remove_task(selected)
+            self.update_task_list()
+        else:
+            QMessageBox.warning(self, "Erro", "Nenhuma tarefa selecionada para remover.")
+
     def clear_tasks(self):
-        tasks_complete = [task for task in self.tasks if task]
-        self.list_tasks.delete(0, tk.END)
-        self.tasks = []
-        for task in tasks_complete:
-            self.list_tasks.insert(tk.END, task)
+        self.task_manager.tasks = []
+        self.update_task_list()
+
+    def mark_task_done(self):
+        selected = self.list_tasks.currentRow()
+        if selected >= 0:
+            self.task_manager.mark_task_done(selected)
+            self.update_task_list()
+        else:
+            QMessageBox.warning(self, "Erro", "Nenhuma tarefa selecionada para marcar como concluída.")
+
+    def update_task_list(self):
+        self.list_tasks.clear()
+        for i in range(len(self.task_manager.tasks)):
+            task_text = self.task_manager.get_task_text(i)
+            item = QListWidgetItem(task_text)
+            item.setFont(QFont("Arial", 12))
+            self.list_tasks.addItem(item)
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = GerenciadorTarefaGUI(root)
-    root.mainloop()
+    app = QApplication(sys.argv)
+    task_manager_gui = GerenciadorTarefaGUI()
+    task_manager_gui.show()
+    sys.exit(app.exec())
